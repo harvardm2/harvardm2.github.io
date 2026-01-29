@@ -516,8 +516,55 @@ html, body {
     color: white;
 }
 
+/* Setup Prompt */
+.setup-prompt {
+    text-align: center;
+    padding: 24px 16px;
+}
+
+.setup-icon {
+    color: var(--accent-color);
+    margin-bottom: 16px;
+}
+
+.setup-prompt h3 {
+    font-size: 18px;
+    font-weight: 600;
+    margin-bottom: 12px;
+    color: var(--text-primary);
+}
+
+.setup-prompt p {
+    font-size: 14px;
+    color: var(--text-secondary);
+    margin-bottom: 8px;
+}
+
+.setup-prompt .setup-hint {
+    font-size: 12px;
+    color: var(--text-secondary);
+    opacity: 0.8;
+}
+
+.settings-link {
+    color: var(--accent-color);
+    font-weight: 600;
+    text-decoration: none;
+    cursor: pointer;
+}
+
+.settings-link:hover {
+    text-decoration: underline;
+}
+
+/* Action Buttons Row */
+.action-buttons {
+    display: flex;
+    gap: 8px;
+}
+
 .search-btn {
-    width: 100%;
+    flex: 1;
     display: flex;
     align-items: center;
     justify-content: center;
@@ -540,6 +587,31 @@ html, body {
 .search-btn:disabled {
     background: var(--border-color);
     cursor: not-allowed;
+}
+
+.refresh-btn {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 48px;
+    height: 48px;
+    background: var(--background);
+    border: 2px solid var(--border-color);
+    border-radius: var(--radius-sm);
+    cursor: pointer;
+    color: var(--text-secondary);
+    transition: all 0.2s;
+    flex-shrink: 0;
+}
+
+.refresh-btn:hover {
+    background: var(--accent-color);
+    border-color: var(--accent-color);
+    color: white;
+}
+
+.refresh-btn.spinning svg {
+    animation: spin 1s linear infinite;
 }
 
 /* Stop Details View */

@@ -45,6 +45,10 @@ const UI = (function() {
         elements.clearSettingsBtn = document.getElementById('clearSettingsBtn');
         elements.activeFilters = document.getElementById('activeFilters');
         elements.filterTags = document.getElementById('filterTags');
+        elements.setupPrompt = document.getElementById('setupPrompt');
+        elements.quickActions = document.getElementById('quickActions');
+        elements.openSettingsLink = document.getElementById('openSettingsLink');
+        elements.refreshBtn = document.getElementById('refreshBtn');
         elements.busNavBadge = document.getElementById('busNavBadge');
         elements.busNavTitle = document.getElementById('busNavTitle');
         elements.nearestStopName = document.getElementById('nearestStopName');
@@ -100,6 +104,22 @@ const UI = (function() {
         elements.saveSettingsBtn.addEventListener('click', saveSettings);
         elements.clearSettingsBtn.addEventListener('click', clearSettings);
 
+        // Setup prompt settings link
+        elements.openSettingsLink.addEventListener('click', (e) => {
+            e.preventDefault();
+            openSettings();
+        });
+
+        // Refresh button
+        elements.refreshBtn.addEventListener('click', () => {
+            elements.refreshBtn.classList.add('spinning');
+            App.refreshBuses().then(() => {
+                setTimeout(() => {
+                    elements.refreshBtn.classList.remove('spinning');
+                }, 500);
+            });
+        });
+
         // Select all / Deselect all buttons
         document.getElementById('selectAllRoutes').addEventListener('click', () => {
             elements.routeFilters.querySelectorAll('input[type="checkbox"]').forEach(cb => {
@@ -149,6 +169,18 @@ const UI = (function() {
     function populateStops(stopsData, routesData) {
         stops = stopsData;
         routes = routesData;
+
+        // Check if user has configured defaults
+        const hasDefaults = Storage.getDefaultSource() || Storage.getSelectedRoutes().length > 0;
+
+        // Show setup prompt or quick actions
+        if (hasDefaults) {
+            elements.setupPrompt.style.display = 'none';
+            elements.quickActions.style.display = 'block';
+        } else {
+            elements.setupPrompt.style.display = 'block';
+            elements.quickActions.style.display = 'none';
+        }
 
         // Get selected routes from storage
         const selectedRoutes = Storage.getSelectedRoutes();
