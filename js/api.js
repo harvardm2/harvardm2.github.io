@@ -5,6 +5,65 @@ const API = (function() {
     const WORKER_URL = 'https://morning-art-5b6bpassio-proxy.stoicbats.workers.dev';
     const SYSTEM_ID = '6986'; // Harvard LMA system ID
 
+    // Friendly name mappings for stops
+    const FRIENDLY_NAMES = {
+        // HMS / Longwood Medical Area
+        'vanderbilt hall': 'HMS (Vanderbilt)',
+        'hms vanderbilt': 'HMS (Vanderbilt)',
+        'longwood': 'Longwood Medical',
+        'brigham': 'Brigham & Women\'s',
+        'children\'s hospital': 'Children\'s Hospital',
+        'dana farber': 'Dana-Farber',
+        'joslin': 'Joslin Diabetes',
+        'beth israel': 'Beth Israel',
+
+        // Harvard Campus
+        'mass ave at smith campus center': 'Harvard Square',
+        'smith campus center': 'Harvard Square',
+        'harvard square': 'Harvard Square',
+        'cambridge': 'Cambridge',
+
+        // Other
+        'kenmore': 'Kenmore',
+        'fenway': 'Fenway',
+        'ruggles': 'Ruggles Station',
+        'roxbury crossing': 'Roxbury Crossing',
+        'nubian': 'Nubian Square',
+        'dudley': 'Nubian Square',
+        'boylston': 'Boylston St',
+        'coolidge corner': 'Coolidge Corner',
+        'brookline': 'Brookline'
+    };
+
+    /**
+     * Get friendly name for a stop
+     */
+    function getFriendlyName(originalName) {
+        if (!originalName) return originalName;
+
+        const lowerName = originalName.toLowerCase();
+
+        // Check for matches in our mapping
+        for (const [key, friendly] of Object.entries(FRIENDLY_NAMES)) {
+            if (lowerName.includes(key)) {
+                return friendly;
+            }
+        }
+
+        // Clean up common patterns if no mapping found
+        let cleaned = originalName
+            .replace(/_\d+$/, '')           // Remove trailing _1, _2 etc
+            .replace(/\(Southbound\)/gi, '(South)')
+            .replace(/\(Northbound\)/gi, '(North)')
+            .replace(/\(Eastbound\)/gi, '(East)')
+            .replace(/\(Westbound\)/gi, '(West)')
+            .replace(/\(Inbound\)/gi, '')
+            .replace(/\(Outbound\)/gi, '')
+            .trim();
+
+        return cleaned;
+    }
+
     /**
      * Make a request through Cloudflare Worker
      */
@@ -94,9 +153,11 @@ const API = (function() {
         for (const key in stopsObj) {
             if (stopsObj.hasOwnProperty(key)) {
                 const stop = stopsObj[key];
+                const originalName = stop.name || `Stop ${stop.id}`;
                 stops.push({
                     id: stop.id || stop.stopId,
-                    name: stop.name || `Stop ${stop.id}`,
+                    name: getFriendlyName(originalName),
+                    originalName: originalName,
                     latitude: parseFloat(stop.latitude),
                     longitude: parseFloat(stop.longitude),
                     routeId: stop.routeId,
@@ -273,6 +334,7 @@ const API = (function() {
         getBuses,
         getStopArrivals,
         calculateETAs,
-        getDistanceKm
+        getDistanceKm,
+        getFriendlyName
     };
 })();
