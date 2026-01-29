@@ -6,25 +6,22 @@ const API = (function() {
     const SYSTEM_ID = '6986'; // Harvard LMA system ID
 
     /**
-     * Make a POST request through CORS proxy
+     * Make a request through CORS proxy (using GET with params)
      */
     async function postRequest(endpoint, body) {
         const targetUrl = `${BASE_URL}?${endpoint}`;
         const bodyData = JSON.stringify(body);
 
-        // Try multiple proxy approaches
+        // Try allorigins first (it's working), then codetabs as backup
         const attempts = [
-            () => tryThingproxy(targetUrl, bodyData),
             () => tryAlloriginsGet(targetUrl, bodyData),
             () => tryCodeTabs(targetUrl, bodyData)
         ];
 
         for (let i = 0; i < attempts.length; i++) {
             try {
-                console.log(`Trying proxy ${i + 1}...`);
                 const result = await attempts[i]();
                 if (result !== null) {
-                    console.log(`Proxy ${i + 1} succeeded`);
                     return result;
                 }
             } catch (error) {
@@ -36,19 +33,6 @@ const API = (function() {
         }
 
         return null;
-    }
-
-    async function tryThingproxy(targetUrl, bodyData) {
-        const response = await fetch('https://thingproxy.freeboard.io/fetch/' + targetUrl, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-            body: `json=${encodeURIComponent(bodyData)}`
-        });
-
-        if (!response.ok) throw new Error(`HTTP ${response.status}`);
-        const text = await response.text();
-        if (!text || text.trim() === '') return null;
-        return JSON.parse(text);
     }
 
     async function tryAlloriginsGet(targetUrl, bodyData) {
