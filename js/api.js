@@ -5,10 +5,11 @@ const API = (function() {
     const BASE_URL = 'https://passiogo.com/mapGetData.php';
     const SYSTEM_ID = '6986'; // Harvard LMA system ID
 
-    // CORS proxy for development
+    // CORS proxy configurations
     const CORS_PROXIES = [
-        'https://corsproxy.io/?',
-        'https://api.allorigins.win/raw?url='
+        { url: 'https://api.allorigins.win/post?url=', type: 'allorigins' },
+        { url: 'https://corsproxy.io/?', type: 'standard' },
+        { url: 'https://proxy.cors.sh/', type: 'corssh' }
     ];
 
     let currentProxyIndex = 0;
@@ -17,23 +18,57 @@ const API = (function() {
      * Make a POST request through CORS proxy
      */
     async function postRequest(endpoint, body) {
-        const url = `${BASE_URL}?${endpoint}`;
+        const targetUrl = `${BASE_URL}?${endpoint}`;
         const proxy = CORS_PROXIES[currentProxyIndex];
+        const bodyData = `json=${encodeURIComponent(JSON.stringify(body))}`;
 
         try {
-            const response = await fetch(proxy + encodeURIComponent(url), {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/x-www-form-urlencoded',
-                },
-                body: `json=${encodeURIComponent(JSON.stringify(body))}`
-            });
+            let response;
+
+            if (proxy.type === 'allorigins') {
+                // allorigins uses a different format - send body as part of the request
+                response = await fetch(proxy.url + encodeURIComponent(targetUrl), {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/x-www-form-urlencoded',
+                    },
+                    body: bodyData
+                });
+            } else if (proxy.type === 'corssh') {
+                // cors.sh requires the target URL as the fetch URL
+                response = await fetch(proxy.url + targetUrl, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/x-www-form-urlencoded',
+                    },
+                    body: bodyData
+                });
+            } else {
+                // Standard proxy format
+                response = await fetch(proxy.url + encodeURIComponent(targetUrl), {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/x-www-form-urlencoded',
+                    },
+                    body: bodyData
+                });
+            }
 
             if (!response.ok) {
                 throw new Error(`HTTP error! status: ${response.status}`);
             }
 
-            const text = await response.text();
+            let text = await response.text();
+
+            // allorigins wraps response in JSON
+            if (proxy.type === 'allorigins') {
+                try {
+                    const wrapped = JSON.parse(text);
+                    text = wrapped.contents || text;
+                } catch (e) {
+                    // Not wrapped, use as-is
+                }
+            }
 
             if (!text || text.trim() === '') {
                 return null;
@@ -43,7 +78,7 @@ const API = (function() {
         } catch (error) {
             if (currentProxyIndex < CORS_PROXIES.length - 1) {
                 currentProxyIndex++;
-                console.log('Trying alternate CORS proxy...');
+                console.log('Trying alternate CORS proxy...', CORS_PROXIES[currentProxyIndex].url);
                 return postRequest(endpoint, body);
             }
 
