@@ -5,86 +5,73 @@ const API = (function() {
     const BASE_URL = 'https://passiogo.com/mapGetData.php';
     const SYSTEM_ID = '6986'; // Harvard LMA system ID
 
-    // CORS proxy configurations
-    const CORS_PROXIES = [
-        { url: 'https://api.allorigins.win/post?url=', type: 'allorigins' },
-        { url: 'https://corsproxy.io/?', type: 'standard' },
-        { url: 'https://proxy.cors.sh/', type: 'corssh' }
-    ];
-
-    let currentProxyIndex = 0;
-
     /**
      * Make a POST request through CORS proxy
      */
     async function postRequest(endpoint, body) {
         const targetUrl = `${BASE_URL}?${endpoint}`;
-        const proxy = CORS_PROXIES[currentProxyIndex];
-        const bodyData = `json=${encodeURIComponent(JSON.stringify(body))}`;
+        const bodyData = JSON.stringify(body);
 
-        try {
-            let response;
+        // Try multiple proxy approaches
+        const attempts = [
+            () => tryThingproxy(targetUrl, bodyData),
+            () => tryAlloriginsGet(targetUrl, bodyData),
+            () => tryCodeTabs(targetUrl, bodyData)
+        ];
 
-            if (proxy.type === 'allorigins') {
-                // allorigins uses a different format - send body as part of the request
-                response = await fetch(proxy.url + encodeURIComponent(targetUrl), {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/x-www-form-urlencoded',
-                    },
-                    body: bodyData
-                });
-            } else if (proxy.type === 'corssh') {
-                // cors.sh requires the target URL as the fetch URL
-                response = await fetch(proxy.url + targetUrl, {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/x-www-form-urlencoded',
-                    },
-                    body: bodyData
-                });
-            } else {
-                // Standard proxy format
-                response = await fetch(proxy.url + encodeURIComponent(targetUrl), {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/x-www-form-urlencoded',
-                    },
-                    body: bodyData
-                });
-            }
-
-            if (!response.ok) {
-                throw new Error(`HTTP error! status: ${response.status}`);
-            }
-
-            let text = await response.text();
-
-            // allorigins wraps response in JSON
-            if (proxy.type === 'allorigins') {
-                try {
-                    const wrapped = JSON.parse(text);
-                    text = wrapped.contents || text;
-                } catch (e) {
-                    // Not wrapped, use as-is
+        for (let i = 0; i < attempts.length; i++) {
+            try {
+                console.log(`Trying proxy ${i + 1}...`);
+                const result = await attempts[i]();
+                if (result !== null) {
+                    console.log(`Proxy ${i + 1} succeeded`);
+                    return result;
+                }
+            } catch (error) {
+                console.log(`Proxy ${i + 1} failed:`, error.message);
+                if (i === attempts.length - 1) {
+                    throw error;
                 }
             }
-
-            if (!text || text.trim() === '') {
-                return null;
-            }
-
-            return JSON.parse(text);
-        } catch (error) {
-            if (currentProxyIndex < CORS_PROXIES.length - 1) {
-                currentProxyIndex++;
-                console.log('Trying alternate CORS proxy...', CORS_PROXIES[currentProxyIndex].url);
-                return postRequest(endpoint, body);
-            }
-
-            console.error('API request failed:', error);
-            throw error;
         }
+
+        return null;
+    }
+
+    async function tryThingproxy(targetUrl, bodyData) {
+        const response = await fetch('https://thingproxy.freeboard.io/fetch/' + targetUrl, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+            body: `json=${encodeURIComponent(bodyData)}`
+        });
+
+        if (!response.ok) throw new Error(`HTTP ${response.status}`);
+        const text = await response.text();
+        if (!text || text.trim() === '') return null;
+        return JSON.parse(text);
+    }
+
+    async function tryAlloriginsGet(targetUrl, bodyData) {
+        // allorigins supports GET - encode body in URL
+        const fullUrl = targetUrl + '&json=' + encodeURIComponent(bodyData);
+        const response = await fetch('https://api.allorigins.win/get?url=' + encodeURIComponent(fullUrl));
+
+        if (!response.ok) throw new Error(`HTTP ${response.status}`);
+        const data = await response.json();
+        const text = data.contents;
+        if (!text || text.trim() === '') return null;
+        return JSON.parse(text);
+    }
+
+    async function tryCodeTabs(targetUrl, bodyData) {
+        // codetabs proxy - GET only
+        const fullUrl = targetUrl + '&json=' + encodeURIComponent(bodyData);
+        const response = await fetch('https://api.codetabs.com/v1/proxy?quest=' + encodeURIComponent(fullUrl));
+
+        if (!response.ok) throw new Error(`HTTP ${response.status}`);
+        const text = await response.text();
+        if (!text || text.trim() === '') return null;
+        return JSON.parse(text);
     }
 
     /**
