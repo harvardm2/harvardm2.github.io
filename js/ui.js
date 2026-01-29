@@ -180,6 +180,10 @@ const UI = (function() {
         } else {
             elements.setupPrompt.style.display = 'block';
             elements.quickActions.style.display = 'none';
+            // Auto-open settings for first-time users (with small delay)
+            setTimeout(() => {
+                openSettings();
+            }, 500);
         }
 
         // Get selected routes from storage
@@ -640,13 +644,14 @@ const UI = (function() {
         Storage.setDefaultSource(elements.defaultSource.value);
         Storage.setDefaultDest(elements.defaultDest.value);
 
-        // Close settings and refresh
+        // Close settings
         closeSettings();
-        showToast('Settings saved!');
+        showToast('Settings saved! Refreshing...');
 
-        // Refresh the UI
-        populateStops(stops, routes);
-        MapManager.filterByRoutes(Storage.getSelectedRoutes());
+        // Reload the page to apply all changes
+        setTimeout(() => {
+            window.location.reload();
+        }, 500);
     }
 
     /**
