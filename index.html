@@ -1,0 +1,221 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>LMA Bus Tracker</title>
+
+    <!-- Leaflet CSS -->
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"
+          integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY="
+          crossorigin="">
+
+    <!-- Google Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+
+    <!-- App CSS -->
+    <link rel="stylesheet" href="css/styles.css">
+</head>
+<body>
+    <div class="app-container">
+        <!-- Header -->
+        <header class="app-header" id="appHeader">
+            <button class="back-btn" id="backBtn" style="display: none;">
+                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <path d="M19 12H5M12 19l-7-7 7-7"/>
+                </svg>
+            </button>
+            <div class="header-content">
+                <h1 id="headerTitle">LMA Bus Tracker</h1>
+                <p id="headerSubtitle">Harvard Shuttle</p>
+            </div>
+            <button class="settings-btn" id="settingsBtn" aria-label="Settings">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <path d="M12.22 2h-.44a2 2 0 0 0-2 2v.18a2 2 0 0 1-1 1.73l-.43.25a2 2 0 0 1-2 0l-.15-.08a2 2 0 0 0-2.73.73l-.22.38a2 2 0 0 0 .73 2.73l.15.1a2 2 0 0 1 1 1.72v.51a2 2 0 0 1-1 1.74l-.15.09a2 2 0 0 0-.73 2.73l.22.38a2 2 0 0 0 2.73.73l.15-.08a2 2 0 0 1 2 0l.43.25a2 2 0 0 1 1 1.73V20a2 2 0 0 0 2 2h.44a2 2 0 0 0 2-2v-.18a2 2 0 0 1 1-1.73l.43-.25a2 2 0 0 1 2 0l.15.08a2 2 0 0 0 2.73-.73l.22-.39a2 2 0 0 0-.73-2.73l-.15-.08a2 2 0 0 1-1-1.74v-.5a2 2 0 0 1 1-1.74l.15-.09a2 2 0 0 0 .73-2.73l-.22-.38a2 2 0 0 0-2.73-.73l-.15.08a2 2 0 0 1-2 0l-.43-.25a2 2 0 0 1-1-1.73V4a2 2 0 0 0-2-2z"/>
+                    <circle cx="12" cy="12" r="3"/>
+                </svg>
+                <span>Settings</span>
+            </button>
+            <div class="header-time" id="currentTime">--:--</div>
+        </header>
+
+        <!-- Settings Panel -->
+        <div class="settings-panel" id="settingsPanel">
+            <div class="settings-header">
+                <h2>Settings</h2>
+                <button class="close-settings" id="closeSettings">
+                    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <path d="M18 6L6 18M6 6l12 12"/>
+                    </svg>
+                </button>
+            </div>
+            <div class="settings-content">
+                <section class="settings-section">
+                    <h3>Filter Routes</h3>
+                    <p class="settings-hint">Select which routes to show</p>
+                    <div class="filter-actions">
+                        <button class="filter-action-btn" id="selectAllRoutes">Select All</button>
+                        <button class="filter-action-btn" id="deselectAllRoutes">Deselect All</button>
+                    </div>
+                    <div class="route-filters" id="routeFilters">
+                        <!-- Route checkboxes will be populated here -->
+                    </div>
+                </section>
+
+                <section class="settings-section">
+                    <h3>Default Stops</h3>
+                    <p class="settings-hint">These will be remembered for next time</p>
+                    <div class="default-stops">
+                        <div class="setting-field">
+                            <label for="defaultSource">Default From</label>
+                            <select id="defaultSource">
+                                <option value="">None</option>
+                            </select>
+                        </div>
+                        <div class="setting-field">
+                            <label for="defaultDest">Default To</label>
+                            <select id="defaultDest">
+                                <option value="">None</option>
+                            </select>
+                        </div>
+                    </div>
+                </section>
+
+                <button class="save-settings-btn" id="saveSettingsBtn">Save Settings</button>
+                <button class="clear-settings-btn" id="clearSettingsBtn">Clear All Settings</button>
+            </div>
+        </div>
+
+        <!-- Map Container -->
+        <div class="map-container">
+            <div id="map"></div>
+
+            <!-- My Location Button -->
+            <button class="my-location-btn" id="myLocationBtn" aria-label="My location">
+                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <circle cx="12" cy="12" r="3"/>
+                    <path d="M12 2v4M12 18v4M2 12h4M18 12h4"/>
+                </svg>
+            </button>
+        </div>
+
+        <!-- Bottom Sheet -->
+        <div class="bottom-sheet" id="bottomSheet">
+            <div class="sheet-handle"></div>
+
+            <!-- Stop Selection View -->
+            <div class="sheet-content" id="stopSelectionView">
+                <div class="active-filters" id="activeFilters" style="display: none;">
+                    <span class="filter-label">Showing:</span>
+                    <div class="filter-tags" id="filterTags"></div>
+                </div>
+
+                <div class="stop-selectors">
+                    <div class="stop-selector">
+                        <label>From</label>
+                        <select id="sourceStop">
+                            <option value="">Select departure stop</option>
+                        </select>
+                    </div>
+                    <button class="swap-btn" id="swapStopsBtn" aria-label="Swap stops">
+                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <path d="M7 16V4M7 4L3 8M7 4l4 4M17 8v12M17 20l4-4M17 20l-4-4"/>
+                        </svg>
+                    </button>
+                    <div class="stop-selector">
+                        <label>To</label>
+                        <select id="destStop">
+                            <option value="">Select destination stop</option>
+                        </select>
+                    </div>
+                </div>
+
+                <button class="search-btn" id="searchBtn">
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <circle cx="11" cy="11" r="8"/>
+                        <path d="M21 21l-4.35-4.35"/>
+                    </svg>
+                    Find Buses
+                </button>
+            </div>
+
+            <!-- Stop Details View -->
+            <div class="sheet-content" id="stopDetailsView" style="display: none;">
+                <div class="stop-info">
+                    <div class="stop-details">
+                        <h2 id="selectedStopName">Stop Name</h2>
+                        <p class="stop-distance" id="stopDistance">Calculating distance...</p>
+                    </div>
+                    <div class="stop-actions">
+                        <button class="action-btn navigate-btn" id="navigateBtn" aria-label="Navigate">
+                            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <path d="M3 11l19-9-9 19-2-8-8-2z"/>
+                            </svg>
+                        </button>
+                    </div>
+                </div>
+
+                <div class="arrivals-header">
+                    <h3>Upcoming Buses</h3>
+                    <span class="refresh-time" id="refreshTime">Updated just now</span>
+                </div>
+
+                <div class="arrivals-list" id="arrivalsList">
+                    <div class="loading-arrivals">
+                        <div class="spinner"></div>
+                        <p>Loading arrivals...</p>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Bus Navigation View -->
+            <div class="sheet-content" id="busNavView" style="display: none;">
+                <div class="bus-nav-header">
+                    <div class="bus-nav-info">
+                        <div class="bus-route-badge" id="busNavBadge">M2</div>
+                        <div>
+                            <h2 id="busNavTitle">Bus Name</h2>
+                            <p id="busNavSubtitle">Tap to navigate to nearest stop</p>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="nearest-stop-card" id="nearestStopCard">
+                    <div class="nearest-stop-info">
+                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0118 0z"/>
+                            <circle cx="12" cy="10" r="3"/>
+                        </svg>
+                        <div>
+                            <h3 id="nearestStopName">Nearest Stop</h3>
+                            <p id="nearestStopDistance">0.0 mi away</p>
+                        </div>
+                    </div>
+                    <button class="navigate-stop-btn" id="navigateToStopBtn">
+                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <path d="M3 11l19-9-9 19-2-8-8-2z"/>
+                        </svg>
+                        Navigate
+                    </button>
+                </div>
+
+                <button class="back-to-main-btn" id="backToMainBtn">Back to Arrivals</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Leaflet JS -->
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"
+            integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo="
+            crossorigin=""></script>
+
+    <!-- App JS -->
+    <script src="js/api.js"></script>
+    <script src="js/storage.js"></script>
+    <script src="js/map.js"></script>
+    <script src="js/ui.js"></script>
+    <script src="js/app.js"></script>
+</body>
+</html>
