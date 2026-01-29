@@ -201,11 +201,12 @@ const UI = (function() {
             }
         }
 
-        // Deduplicate stops by ID
+        // Deduplicate stops by NAME (not ID) to avoid showing duplicates like "HMS (Vanderbilt)" 5 times
+        // Keep one representative stop per unique name
         const uniqueStopsMap = new Map();
         filteredStops.forEach(stop => {
-            if (!uniqueStopsMap.has(stop.id)) {
-                uniqueStopsMap.set(stop.id, stop);
+            if (!uniqueStopsMap.has(stop.name)) {
+                uniqueStopsMap.set(stop.name, stop);
             }
         });
 
@@ -595,11 +596,11 @@ const UI = (function() {
 
         elements.routeFilters.innerHTML = routeFiltersHtml;
 
-        // Populate default stops (all stops, not filtered)
+        // Populate default stops (all stops, deduplicated by name)
         const uniqueStopsMap = new Map();
         stops.forEach(stop => {
-            if (!uniqueStopsMap.has(stop.id)) {
-                uniqueStopsMap.set(stop.id, stop);
+            if (!uniqueStopsMap.has(stop.name)) {
+                uniqueStopsMap.set(stop.name, stop);
             }
         });
 
