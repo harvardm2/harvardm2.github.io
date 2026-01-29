@@ -2,57 +2,23 @@
  * API module for PassioGo bus tracking
  */
 const API = (function() {
-    const BASE_URL = 'https://passiogo.com/mapGetData.php';
+    const WORKER_URL = 'https://morning-art-5b6bpassio-proxy.stoicbats.workers.dev';
     const SYSTEM_ID = '6986'; // Harvard LMA system ID
 
     /**
-     * Make a request through CORS proxy (using GET with params)
+     * Make a request through Cloudflare Worker
      */
     async function postRequest(endpoint, body) {
-        const targetUrl = `${BASE_URL}?${endpoint}`;
-        const bodyData = JSON.stringify(body);
+        const response = await fetch(`${WORKER_URL}?endpoint=${encodeURIComponent(endpoint)}`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+            body: `json=${encodeURIComponent(JSON.stringify(body))}`
+        });
 
-        // Try allorigins first (it's working), then codetabs as backup
-        const attempts = [
-            () => tryAlloriginsGet(targetUrl, bodyData),
-            () => tryCodeTabs(targetUrl, bodyData)
-        ];
-
-        for (let i = 0; i < attempts.length; i++) {
-            try {
-                const result = await attempts[i]();
-                if (result !== null) {
-                    return result;
-                }
-            } catch (error) {
-                console.log(`Proxy ${i + 1} failed:`, error.message);
-                if (i === attempts.length - 1) {
-                    throw error;
-                }
-            }
+        if (!response.ok) {
+            throw new Error(`HTTP ${response.status}`);
         }
 
-        return null;
-    }
-
-    async function tryAlloriginsGet(targetUrl, bodyData) {
-        // allorigins supports GET - encode body in URL
-        const fullUrl = targetUrl + '&json=' + encodeURIComponent(bodyData);
-        const response = await fetch('https://api.allorigins.win/get?url=' + encodeURIComponent(fullUrl));
-
-        if (!response.ok) throw new Error(`HTTP ${response.status}`);
-        const data = await response.json();
-        const text = data.contents;
-        if (!text || text.trim() === '') return null;
-        return JSON.parse(text);
-    }
-
-    async function tryCodeTabs(targetUrl, bodyData) {
-        // codetabs proxy - GET only
-        const fullUrl = targetUrl + '&json=' + encodeURIComponent(bodyData);
-        const response = await fetch('https://api.codetabs.com/v1/proxy?quest=' + encodeURIComponent(fullUrl));
-
-        if (!response.ok) throw new Error(`HTTP ${response.status}`);
         const text = await response.text();
         if (!text || text.trim() === '') return null;
         return JSON.parse(text);
